@@ -177,11 +177,7 @@ function(Y,penalty="fused",lambda1,lambda2,rho=1,weights="equal",penalize.diagon
 	
 	
 	
-	
-	
-	
-	
-	
+
 	
 	
 	## now run JGL on each block of the connected nodes to fill in theta:
