@@ -62,80 +62,39 @@ JGL_inter <- function(Y,lambda1=1,lambda2=1,rho=1,weights="equal",penalize.diago
   lam1 = lambda1
   lam2 = lambda2
 
-  ##############To identify C1 and C2 non-overlapping partition##############################
   
-  if(K==2)  #use bi-conditional screening rule to identify block structure exactly
-  {
-    crit1 = list()
-    for(k in 1:K) { crit1[[k]] =  abs(S[[k]])*weights[k] > lam1 + lam2 }  
-    S.sum = matrix(0,sum(connected),sum(connected))
-    for(k in 1:K) {S.sum = S.sum + weights[k]*S[[k]]}
-    S.sum = abs(S.sum)
-    crit2 = S.sum > 2*lam1
-  }
-  
-  if(K>2)  #use sufficient screening rule to identify larger-grained block structure
-  {
-    crit1 = list()
-    for(k in 1:K) { crit1[[k]] =  abs(S[[k]])*weights[k] > lam1 }  
-    crit2 = matrix(0,sum(connected),sum(connected))
-  }
-  
-  # are both criteria met?
-  critboth = crit2
-  for(k in 1:K) {critboth = critboth + crit1[[k]]}
-  critboth = (critboth!=0)				
-  diag(critboth) = 1
 
-  
-  #####################Create 2 nonoverlapping partitions C1 and C2############################
-  
-  ## now identify block structure using igraph:
-  g1 <- graph.adjacency(critboth)	
-  cout = clusters(g1)
-  blocklist = list()
-  # identify unconnected elements, and get blocks:
-  unconnected = c()
-  #	for(i in 2:(cout$no+1))
-  #	{
-  #		if(sum(cout$membership==(i-1))==1) { unconnected <- c(unconnected,which(cout$membership==(i-1))) }
-  #		if(sum(cout$membership==(i-1))>1) { blocklist[[length(blocklist)+1]] <- which(cout$membership==(i-1)) }
-  #	}
-  
-  # adapt cout$membership to start with index 1:
-  if(min(cout$membership)==0){cout$membership=cout$membership+1}
-  
-  
-  
-  for(i in 1:(cout$no))
-  {
-    if(sum(cout$membership==i)==1) { unconnected <- c(unconnected,which(cout$membership==i)) }
-    if(sum(cout$membership==i)>1) { blocklist[[length(blocklist)+1]] <- which(cout$membership==i) }
-  }
-  
-  # final set of connected nodes
-  connected[unconnected] = FALSE
-  # connected indices of connected nodes:  0 for unconnected nodes, and 1:length(connected) for the rest.  
-  # maps features 1:p to their order in the connected features
-  connected.index = rep(0,p)
-  connected.index[connected] = 1:sum(connected)
-  # regular indices of connected nodes: map connected nodes onto 1:p indexing:
-  
-  # redefine unconnected as !connected (up until now it's been extra nodes caught as unconnected)
-  unconnected=!connected
-  
-  ## define theta on all connected:   (so theta is really theta.connected).
-  theta = list()
-  for(k in 1:K) 
-  {
-    theta[[k]] = matrix(0,sum(connected),sum(connected))
-    if(sum(connected)>0)
-    {
-      dimnames(theta[[k]])[[1]]=dimnames(theta[[k]])[[2]]=dimnames(Y[[k]])[[2]][connected]	
+  for(i in 1:length(blocklist)){
+      # the variables in the block
+      bl <- blocklist[[i]] 
+      Ybl = list()
+      # get the data on only those variables
+      for(k in 1:K) 
+      {
+        Ybl[[k]] = Y[[k]][,bl]
+      }  
+      # penalty matrices:
+      if(length(lambda1)==1) { lam1.bl = lambda1 }
+      if(length(lambda1)>1) { lam1.bl = lambda1[bl,bl] }
+      if(length(lambda2)==1) { lam2.bl = lambda2 }
+      if(length(lambda2)>1) { lam2.bl = lambda2[bl,bl] }
+      # initialize lambdas:
+      lam1.bl = penalty.as.matrix(lam1.bl,dim(Ybl[[1]])[2],penalize.diagonal=penalize.diagonal)
+      if(penalty=="fused") {lam2.bl = penalty.as.matrix(lam2.bl,dim(Ybl[[1]])[2],penalize.diagonal=TRUE)}
+      if(penalty=="group") {lam2.bl = penalty.as.matrix(lam2.bl,dim(Ybl[[1]])[2],penalize.diagonal=penalize.diagonal)}
+      
+      # implement warm start if desired
+      if(length(warm)==0) {warm.bl = NULL}
+      if(length(warm)>0)
+      {
+        warm.bl = list()
+        for(k in 1:K) { warm.bl[[k]] = warm[[k]][bl,bl] }
+      }
+      # run JGL on the block:
+      Thetabl = admm.iters(Ybl,lam1.bl,lam2.bl,penalty=penalty,rho=rho,weights=weights,penalize.diagonal=TRUE,maxiter=maxiter,tol=tol,warm=warm.bl)
+      # update Theta with Thetabl's results:
+      for(k in 1:K) {theta[[k]][connected.index[bl],connected.index[bl]] = Thetabl$Z[[k]]}   
     }
-  }
-  
-  ###################################################################################################
   
   
   
