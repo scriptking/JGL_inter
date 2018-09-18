@@ -101,10 +101,8 @@ plot.jgl <- function(x,...)
     
     for (k in 1:K) {
     V(graj[[k]])$name <- data1_dimname[V(graj[[k]])]
-    E(graj[[k]])$weight = edge_weight
+    E(graj[[k]])$weight = edge_weight[[k]]
     }
   
-    return(grad)
+    return(graj)
   }
-
-
