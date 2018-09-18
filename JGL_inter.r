@@ -73,13 +73,38 @@ JGL_inter <- function(Y,lambda1=1,lambda2=1,rho=1,penalize.diagonal=TRUE,maxiter
   }
   
   out = list(theta=theta_intra,diff=Theta$diff,iters=Theta$iter)
+  
+  
   return(out)
 }
 
+plot.jgl <- function(x,...)
+  {
+    theta=x$theta
+    library(igraph)
+    K=length(theta)
+    adj = make.adj.matrix(theta,separate=TRUE)
+    for (k in 1:K) { diag(adj[[k]])=0 }
+    graj = list()
+    for (k in 1:K) { graj[[k]]= graph.adjacency(adj[[k]],mode="upper",weighted=TRUE) }
 
-
-
-
-
+    edge_weight = list()
+    for (k in 1:K) { edge_weight[[k]]=array(dim = c(1,length(E(graj[[k]])))) }
+    for (k in 1:K) {
+      count = 1
+      for (i in 1:(p-1)) {
+        for (j in (i+1):p) {
+          if(adj[[k]][i,j]){
+            edge_weight[[k]][count] = theta[[k]][i,j]
+            count = count +1
+          }}}}
+    
+    for (k in 1:K) {
+    V(graj[[k]])$name <- data1_dimname[V(graj[[k]])]
+    E(graj[[k]])$weight = edge_weight
+    }
+  
+    return(grad)
+  }
 
 

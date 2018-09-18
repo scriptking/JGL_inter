@@ -60,26 +60,45 @@ source('~/JGL_inter/penalty.as.matrix.R')
 source('~/JGL_inter/flsa.general.R')
 source('~/JGL_inter/soft.R')
 source('~/JGL_inter/admm.intra.r')
+source('~/JGL_inter/make.adj.matrix.R')
 
 Z = JGL_inter(Y=DATA1)
 theta = Z$theta
 print(Z$diff)
+plot(graj[[k]])
 
-plot.jgl <-
-  function(x,...)
-  {
-    .env = "environment: namespace:JGL"
-    #UseMethod("plot")
-    theta=x$theta
-    library(igraph)
-    K=length(theta)
-    adj = make.adj.matrix(theta)
-    diag(adj)=0
-    gadj = graph.adjacency(adj,mode="upper",weighted=TRUE)
-    #weight the edges according to the classes they belong to
-    E(gadj)$color = 2^(K)-get.edge.attribute(gadj,"weight")
-    #plot the net using igraph
-    plot(gadj, vertex.frame.color="white",layout=layout.fruchterman.reingold, 
-         vertex.label=NA, vertex.label.cex=3, vertex.size=1)
+K=length(theta)
+adj = make.adj.matrix(theta,separate=TRUE)
+for (k in 1:K) {
+  diag(adj[[k]])=0
+}
+
+graj = list()
+for (k in 1:K) {
+  graj[[k]]= graph.adjacency(adj[[k]],mode="upper",weighted=TRUE)
+}
+V(gadj)$label <- data1_dimname[V(gadj)]
+#gadj = graph.adjacency(adj,mode="upper",weighted=TRUE)
+#weight the edges according to the classes they belong to
+E(gadj)$color = 2^(K)-get.edge.attribute(gadj,"weight")
+#plot the net using igraph
+plot(gadj, vertex.frame.color="white",layout=layout.fruchterman.reingold, 
+     vertex.label=NA, vertex.label.cex=3, vertex.size=1)
+#edge_weight = theta[[1]][i,j]
+count = 1
+edge_weight=array(dim = c(1,length(E(gadj))))
+for (i in 1:(p-1)) {
+  for (j in (i+1):p) {
+    if(adj[[1]][i,j]){
+          #print(sprintf("loop %d-- %d,,,,count = %d",i,j,count))
+          #print(E(gadj)[count])
+          edge_weight[count] = theta[[1]][i,j]
+          count = count +1
+      }
+      
   }
-
+}
+#V(gadj)$label <- data1_dimname[V(gadj)]
+V(gadj)$name <- data1_dimname[V(gadj)]
+E(gadj)$weight = edge_weight
+plot(gadj)
