@@ -44,6 +44,7 @@ admm.intra = function(S,lambda1,lambda2,rho=1,rho.increment=1,weights,penalize.d
     for(k in 1:K){ A[[k]] = theta[[k]] + W[[k]] }
     
     # use flsa to minimize rho/2 ||Z-A||_F^2 + P(Z):
+    Z.prev = Z
     if(K==2){Z = flsa2(A,rho,lambda1,lambda2,penalize.diagonal=TRUE)}
     if(K>2){Z = flsa.general(A,rho,lambda1,lambda2,penalize.diagonal=TRUE)}  # the option to not penalize the diagonal is exercised when we initialize the lambda matrices
     
@@ -54,9 +55,12 @@ admm.intra = function(S,lambda1,lambda2,rho=1,rho.increment=1,weights,penalize.d
     iter = iter+1
     diff_value = 0
     for(k in 1:K) {diff_value = diff_value + sum(abs(theta[[k]] - theta.prev[[k]])) / sum(abs(theta.prev[[k]]))}
-    
+    diff_valuez = 0
+    for(k in 1:K) {diff_valuez = diff_valuez + sum(abs(Z[[k]] - Z.prev[[k]])) / sum(abs(Z.prev[[k]]))}
+    loss = 0; for(k in 1:K){loss = loss + sum(abs(theta[[k]]-Z[[k]]))}
     # increment rho by a constant factor:
     rho = rho*rho.increment
+    print(sprintf("iter = %d,change_theta = %0.15f,change_z = %0.15f,loss = %0.15f",iter,diff_value,diff_valuez,loss))
   }
   
   diff = 0; for(k in 1:K){diff = diff + sum(abs(theta[[k]]-Z[[k]]))}

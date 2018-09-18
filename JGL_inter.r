@@ -1,4 +1,4 @@
-JGL_inter <- function(Y,lambda1=1,lambda2=1,rho=1,penalize.diagonal=TRUE,maxiter=500,tol=1e-5) {
+JGL_inter <- function(Y,lambda1=1,lambda2=1,rho=1,penalize.diagonal=TRUE,maxiter=1000,tol=1e-5) {
   
   p = dim(Y[[1]])[2] # No of genes  i.e. dimention size
   K = length(Y) # No of tissues i.e. total classes

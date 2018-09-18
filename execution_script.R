@@ -55,3 +55,4 @@ source('~/JGL_inter/soft.R')
 source('~/JGL_inter/admm.intra.r')
 
 Z = JGL_inter(Y=DATA1)
+print(Z$diff)
