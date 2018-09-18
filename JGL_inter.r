@@ -65,6 +65,13 @@ JGL_inter <- function(Y,lambda1=1,lambda2=1,rho=1,penalize.diagonal=TRUE,maxiter
   theta_intra = list()
   for(k in 1:K) {theta_intra[[k]] = Theta$Z[[k]]}   
   
+  # round very small theta entries down to zero:
+  for(k in 1:K)
+  {
+    rounddown = abs(theta_intra[[k]])<tol; diag(rounddown)=FALSE
+    theta_intra[[k]]=theta_intra[[k]]*(1-rounddown)
+  }
+  
   out = list(theta=theta_intra,diff=Theta$diff,iters=Theta$iter)
   return(out)
 }
