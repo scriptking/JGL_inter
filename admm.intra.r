@@ -1,5 +1,5 @@
 ### ADMM for FGL:
-admm.intra = function(S,lambda1,lambda2,penalty="fused",rho=1,rho.increment=1,weights,penalize.diagonal,maxiter = 1000,tol=1e-5)
+admm.intra = function(S,lambda1,lambda2,rho=1,rho.increment=1,weights,penalize.diagonal,maxiter = 1000,tol=1e-5)
 {
   K = length(S)
   p = dim(S[[1]])[2]
