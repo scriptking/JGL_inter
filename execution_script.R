@@ -52,6 +52,6 @@ source('~/JGL_inter/JGL_inter.r')
 source('~/JGL_inter/penalty.as.matrix.R')
 source('~/JGL_inter/flsa.general.R')
 source('~/JGL_inter/soft.R')
-source('~/JGL_inter/flsa.general.R')
+source('~/JGL_inter/admm.intra.r')
 
-Z = JGL_inter(DATA1)
+Z = JGL_inter(Y=DATA1)

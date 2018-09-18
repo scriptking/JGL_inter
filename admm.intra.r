@@ -13,6 +13,7 @@ admm.intra = function(S,lambda1,lambda2,rho=1,rho.increment=1,weights,penalize.d
   # initialize W:
   W = list();	for(k in 1:K) {W[[k]] = matrix(0,p,p) }
   
+  
   # iterations:
   iter=0
   diff_value = 10
@@ -25,6 +26,7 @@ admm.intra = function(S,lambda1,lambda2,rho=1,rho.increment=1,weights,penalize.d
       print(paste("crit=",crit(theta,S,n=rep(1,K),lam1,lam2,penalize.diagonal=penalize.diagonal)))
       print(paste("crit=",crit(Z,S,n=rep(1,K),lam1,lam2,penalize.diagonal=penalize.diagonal)))
     }
+    
     
     # update theta:
     theta.prev = theta
@@ -42,8 +44,8 @@ admm.intra = function(S,lambda1,lambda2,rho=1,rho.increment=1,weights,penalize.d
     for(k in 1:K){ A[[k]] = theta[[k]] + W[[k]] }
     
     # use flsa to minimize rho/2 ||Z-A||_F^2 + P(Z):
-    if(K==2){Z = flsa2(A,rho,lam1,lam2,penalize.diagonal=TRUE)}
-    if(K>2){Z = flsa.general(A,rho,lam1,lam2,penalize.diagonal=TRUE)}  # the option to not penalize the diagonal is exercised when we initialize the lambda matrices
+    if(K==2){Z = flsa2(A,rho,lambda1,lambda2,penalize.diagonal=TRUE)}
+    if(K>2){Z = flsa.general(A,rho,lambda1,lambda2,penalize.diagonal=TRUE)}  # the option to not penalize the diagonal is exercised when we initialize the lambda matrices
     
     # update the dual variable W:
     for(k in 1:K){W[[k]] = W[[k]] + (theta[[k]]-Z[[k]])}
