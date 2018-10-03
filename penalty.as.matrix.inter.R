@@ -1,4 +1,4 @@
-penalty.as.matrix <- function(lambda,p,penalize.diagonal)
+penalty.as.matrix.inter <- function(lambda,p,K)
 {
 	# for matrix penalties:  check dim and symmetry:
 	if(is.matrix(lambda))
@@ -7,9 +7,13 @@ penalty.as.matrix <- function(lambda,p,penalize.diagonal)
 		if(sum(abs(dim(lambda)-p))!=0 ) {stop("error: penalty matrix has wrong dimension")}
 	}
 	# for scalar penalties: convert to matrix form:
-	if(length(lambda)==1) {lambda=matrix(lambda,p,p)}
-	# apply the penalize.diagonal argument:
-	if(!penalize.diagonal) {diag(lambda)=0}
-	return(lambda)
+	if(length(lambda)==1) {
+	  lambda=matrix(lambda,p,p)
+	  lamda = vector("list",length=K)
+	  for (i in 1:K)
+	    lamda[[i]] = lambda
+	  }
+  
+	return(lamda)
 }
 

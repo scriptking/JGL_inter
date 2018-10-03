@@ -1,4 +1,4 @@
-JGL_inter <- function(Y,lambda1=1,lambda2=1,rho=1,penalize.diagonal=TRUE,maxiter=1000,tol=1e-5) {
+JGL_inter <- function(Y,l1_lineage,lambda1=1,lambda2=1,rho=1,penalize.diagonal=FALSE,maxiter=500,tol=1e-5) {
   
   p = dim(Y[[1]])[2] # No of genes  i.e. dimention size
   K = length(Y) # No of tissues i.e. total classes
@@ -38,7 +38,7 @@ JGL_inter <- function(Y,lambda1=1,lambda2=1,rho=1,penalize.diagonal=TRUE,maxiter
   
   
   ## define S_inter
-  S_inter = vector("list",length=K)
+  S_inter = vector("list",length=(K*(K-1))/2)
   k = 0 
   S_inter_seq = array(dim=c((K*(K-1))/2,2))
   for(k1 in 1:K)
@@ -57,13 +57,25 @@ JGL_inter <- function(Y,lambda1=1,lambda2=1,rho=1,penalize.diagonal=TRUE,maxiter
   # initialize lambdas:
   lam1 = penalty.as.matrix(lambda1,dim(Y[[1]])[2],penalize.diagonal=penalize.diagonal)
   lam2 = penalty.as.matrix(lambda2,dim(Y[[1]])[2],penalize.diagonal=TRUE)
+  inter_lam1 = penalty.as.matrix.inter(lambda1,dim(Y[[1]])[2],length(S_inter))
+  inter_lam2 = penalty.as.matrix.inter(lambda2,dim(Y[[1]])[2],length(S_inter))
+  
+  l1.lineage = vector("list",length=length(l1_lineage))
+  for (i in 1:length(l1_lineage)) {
+    l1.lineage[[i]] = penalty.as.matrix(l1_lineage[i],dim(Y[[1]])[2],penalize.diagonal=TRUE)
+    inter_lam1[[i]] = inter_lam1[[i]] + l1.lineage[[i]]
+  }
   
   # run JGL for intra class:
   print("before admm call for intra")
   Theta = admm.intra(S_intra,lam1,lam2,rho=rho,penalize.diagonal=TRUE,weights=weights,maxiter=maxiter,tol=tol)
+  Theta_inter = admm.inter(S_inter,inter_lam1,inter_lam2,rho=rho,weights=rep(n,length(S_inter)),maxiter=maxiter,tol=tol)
+  
   # update Theta with Theta's results:
   theta_intra = list()
+  theta_inter = list()
   for(k in 1:K) {theta_intra[[k]] = Theta$Z[[k]]}   
+  for(k in 1:length(S_inter)) {theta_inter[[k]] = Theta_inter$Z[[k]]} 
   
   # round very small theta entries down to zero:
   for(k in 1:K)
@@ -72,7 +84,13 @@ JGL_inter <- function(Y,lambda1=1,lambda2=1,rho=1,penalize.diagonal=TRUE,maxiter
     theta_intra[[k]]=theta_intra[[k]]*(1-rounddown)
   }
   
-  out = list(theta=theta_intra,diff=Theta$diff,iters=Theta$iter)
+  for(k in 1:length(S_inter))
+  {
+    rounddown = abs(theta_inter[[k]])<tol;
+    theta_inter[[k]]=theta_inter[[k]]*(1-rounddown)
+  }
+  
+  out = list(theta.intra=theta_intra,diff.intra=Theta$diff,iters.intra=Theta$iter,theta.inter=theta_inter,diff.inter=Theta_inter$diff,iters.inter=Theta_inter$iter)
   
   
   return(out)
@@ -80,7 +98,7 @@ JGL_inter <- function(Y,lambda1=1,lambda2=1,rho=1,penalize.diagonal=TRUE,maxiter
 
 plot.jgl <- function(x,...)
   {
-    theta=x$theta
+    theta=x
     library(igraph)
     K=length(theta)
     adj = make.adj.matrix(theta,separate=TRUE)
@@ -100,9 +118,9 @@ plot.jgl <- function(x,...)
           }}}}
     
     for (k in 1:K) {
-    V(graj[[k]])$name <- data1_dimname[V(graj[[k]])]
+    #V(graj[[k]])$name <- data1_dimname[V(graj[[k]])]
     E(graj[[k]])$weight = edge_weight[[k]]
     }
   
     return(graj)
-  }
+}

@@ -1,12 +1,5 @@
-library(igraph)
-lambda1=1 
-lambda2=1 
-rho=1 
-penalize.diagonal=FALSE 
-maxiter=500 
-tol=1e-5
-load("~/JGL/example.data.rda")
-Y = example.data
+#load("~/JGL/example.data.rda")
+#Y = example.data
 
 DATA = list()
 DATA[[1]] = read.csv("~/JGL_inter/gene_adip.csv") ######1st column is identifier
@@ -60,11 +53,55 @@ source('~/JGL_inter/penalty.as.matrix.R')
 source('~/JGL_inter/flsa.general.R')
 source('~/JGL_inter/soft.R')
 source('~/JGL_inter/admm.intra.r')
+source('~/JGL_inter/admm.inter.r')
+source('~/JGL_inter/penalty.as.matrix.inter.R')
+source('~/JGL_inter/flsa.inter.general.r')
 source('~/JGL_inter/make.adj.matrix.R')
+source('~/JGL_inter/net.degree.R')
 
-Z = JGL_inter(Y=DATA1)
-theta = Z$theta
-print(Z$diff)
+l1.lineage = array(0,dim=c(1,(K*(K-1)/2)))
+l1.lineage[2] = 1
+l1.lineage[4] = 1
+l1.lineage[6] = .5
+lambda1=5
+lambda2=1.5
+rho=1.2
+penalize.diagonal=FALSE 
+maxiter=100 
+tol=1e-5
 
-graj = plot.jgl(Z)
-plot(graj[[4]])
+Z = JGL_inter(Y=DATA1,l1_lineage=l1.lineage,lambda1,lambda2,rho,penalize.diagonal,maxiter,tol)
+degree.intra = net.degree(Z$theta.intra)
+degree.inter = net.degree(Z$theta.inter,inter=TRUE)
+gra_intra = plot.jgl(Z$theta.intra)
+count.disconnect = array(FALSE,dim=c(1,K+1))
+for (k in 1:K) {
+  count = 0
+  for (i in 1:p) {
+    if(!degree.intra[[k]][i])
+      count = count + 1
+  }
+  count.disconnect[k] = count}
+count = 0
+for (k in 1:length(Z$theta.inter)) {
+  for (i in 1:p) {
+    if(!degree.inter[[k]][i])
+      count = count + 1
+  }}
+count.disconnect[K+1] = count
+count.disconnect
+
+plot(gra_intra[[4]],layout=layout.fruchterman.reingold)#edge.width=E(graj[[4]])$weight*10)
+adj = get.adjacency(gra_intra[[4]],attr='weight',sparse=FALSE)
+
+plot(gra_intra[[4]],				#the graph to be plotted
+     layout=layout.fruchterman.reingold,	# the layout method. see the igraph documentation for details
+     main='Organizational network example',	#specifies the title
+     vertex.label.dist=0.5,			#puts the name labels slightly off the dots
+     vertex.frame.color='blue', 		#the color of the border of the dots 
+     vertex.label.color='black',		#the color of the name labels
+     vertex.label.font=2,			#the font of the name labels
+     vertex.label=NA, #V(graj[[4]])$name,		#specifies the lables of the vertices. in this case the 'name' attribute is used
+     vertex.label.cex=1,			#specifies the size of the font of the labels. can also be made to vary
+     vertex.size=5
+)
