@@ -86,7 +86,8 @@ DATA = list()
 list_lambda = c(0.1,0.2)
 out_data = list()
 count = 0
-col_name = c("iter","loss","l1","l2",paste("deg.",tissues,sep=""),paste("deg.",inter_issue,sep=""),paste("intra.gene.err.g2.",data1_dimname[1:floor(p/2)],sep=""),paste("intra.gene.err.g1.",data1_dimname[(1+floor(p/2)):p],sep=""),paste("inter.gene.err.g2.",data1_dimname,sep=""),paste("inter.gene.err.g1.",data1_dimname,sep=""))
+#col_name = c("iter","loss","l1","l2",paste("deg.",tissues,sep=""),paste("deg.",inter_issue,sep=""),paste("intra.gene.err.g2.",data1_dimname[1:floor(p/2)],sep=""),paste("intra.gene.err.g1.",data1_dimname[(1+floor(p/2)):p],sep=""),paste("inter.gene.err.g2.",data1_dimname,sep=""),paste("inter.gene.err.g1.",data1_dimname,sep=""))
+col_name = c("iter","loss","l1","l2",paste("deg.",tissues,sep=""),paste("tra.g2.",data1_dimname[1:floor(p/2)],sep=""),paste("tra.g1.",data1_dimname[(1+floor(p/2)):p],sep=""),paste("ter.g2.",data1_dimname,sep=""),paste("ter.g1.",data1_dimname,sep=""))
 observed_data = matrix(nrow = 1, ncol = length(col_name), dimnames = list(1,col_name))
 for (x in 1:length(list_lambda)) {
   for (y in 1:length(list_lambda)) {
@@ -108,13 +109,19 @@ for (x in 1:length(list_lambda)) {
     total.degree[[2]] = rowSums(degree.inter[[1]])
     #print(total.degree[[1]])
     #print(total.degree[[2]])
-    out_str = paste(sprintf("iter=%d,loss=%f,l1=%f,l2=%f,",Z$iters,Z$diff,lambda1,lambda2),"intra.deg=",toString(total.degree[[1]]),"inter.deg=",toString(total.degree[[2]]),"intra.err=",toString(sprintf("%f",Z$validation.error[[1]])),"inter.err=",toString(sprintf("%f",Z$validation.error[[2]])))
-    print(out_str)
-    observed_data = rbind(observed_data,c(Z$iters,Z$diff,lambda1,lambda2,total.degree[[1]],total.degree[[2]],Z$validation.error[[3]],Z$validation.error[[4]],Z$validation.error[[5]]))
+    #out_str = paste(sprintf("iter=%d,loss=%f,l1=%f,l2=%f,",Z$iters,Z$diff,lambda1,lambda2),"intra.deg=",toString(total.degree[[1]]),"inter.deg=",toString(total.degree[[2]]),"intra.err=",toString(sprintf("%f",Z$validation.error[[1]])),"inter.err=",toString(sprintf("%f",Z$validation.error[[2]])))
+    #print(out_str)
+    #observed_data = rbind(observed_data,c(Z$iters,Z$diff,lambda1,lambda2,total.degree[[1]],total.degree[[2]],Z$validation.error[[3]],Z$validation.error[[4]],Z$validation.error[[5]]))
     #c("iter","loss","l1","l2",paste("deg.",tissues,sep=""),paste("deg.",inter_issue,sep=""),paste("val.err.",tissues,sep=""),paste("val.err.",inter_issue,sep=""),paste("intra.gene.err.",data1_dimname[1:length(Z$validation.error[[3]])],sep=""),paste("inter.gene.err.",data1_dimname[1:length(Z$validation.error[[4]])],sep=""))
+    observed_data = rbind(observed_data,c(Z$iters,Z$diff,lambda1,lambda2,total.degree[[1]],Z$validation.error[[3]],Z$validation.error[[4]],Z$validation.error[[5]]))
+    #
   }
 }
-observed_data[2:dim(observed_data)[1],]
+observed_data = observed_data[2:dim(observed_data)[1],]
+print(observed_data)
+
+library(writexl)
+write_xlsx(data.frame(observed_data), "/home/manas/JGL_inter/observed_data.xlsx")
 
 plot(gra_intra[[4]],layout=layout.fruchterman.reingold)#edge.width=E(graj[[4]])$weight*10)
 adj = get.adjacency(gra_intra[[4]],attr='weight',sparse=FALSE)
