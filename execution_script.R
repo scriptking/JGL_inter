@@ -7,8 +7,19 @@ DATA[[2]] = read.csv("~/JGL_inter/gene_musc.csv")
 DATA[[3]] = read.csv("~/JGL_inter/gene_skin.csv")
 DATA[[4]] = read.csv("~/JGL_inter/gene_thyr.csv")
 
+tissues = array(c("adip","musc","skin","thyr"))
+
 K = 4
 p_o = dim(DATA[[1]])[2]
+
+inter_issue = array(dim = (K*(K-1))/2)
+count = 0
+for (k1 in 1:(K-1)) {
+  for (k2 in setdiff(k1:K,k1)) {
+    count = count +1
+    inter_issue[count] = paste(tissues[k1],tissues[k2],sep = "-")   
+  }
+}
 
 vardata = array(dim=c(K,p_o-1))
 for(k in 1:K)
@@ -71,13 +82,18 @@ lambda2=2
 rho=1;penalize.diagonal=FALSE;maxiter=1000;tol=1e-5
 
 DATA = list()
-list_lambda = c(0.1,0.4,0.8,1.1,1.5,2,3,5)
-#list_lambda = c(0.1)
+#list_lambda = c(0.1,0.4,0.8,1.1,1.5,2,3,5)
+list_lambda = c(0.1,0.2)
+out_data = list()
+count = 0
+col_name = c("iter","loss","l1","l2",paste("deg.",tissues,sep=""),paste("deg.",inter_issue,sep=""),paste("intra.gene.err.g2.",data1_dimname[1:floor(p/2)],sep=""),paste("intra.gene.err.g1.",data1_dimname[(1+floor(p/2)):p],sep=""),paste("inter.gene.err.g2.",data1_dimname,sep=""),paste("inter.gene.err.g1.",data1_dimname,sep=""))
+observed_data = matrix(nrow = 1, ncol = length(col_name), dimnames = list(1,col_name))
 for (x in 1:length(list_lambda)) {
   for (y in 1:length(list_lambda)) {
+    count = count + 1
     lambda1=list_lambda[x]
     lambda2=list_lambda[y]
-    # Z = JGL_inter(Y=DATA1,l1_lineage=l1.lineage,lambda1,lambda2,rho,penalize.diagonal,maxiter,tol)
+    Z = JGL_inter(Y=DATA1,l1_lineage=l1.lineage,lambda1,lambda2,rho,penalize.diagonal,maxiter,tol)
     #print(sprintf("iter=%d,loss = %f,l1=%f,l2=%f",Z$iters,Z$diff,lambda1,lambda2))
     #print(Z$validation.error[[1]])
     #print(Z$validation.error[[2]])
@@ -89,13 +105,16 @@ for (x in 1:length(list_lambda)) {
     #count.disconnect = array(FALSE,dim=c(1,K+1))
     total.degree = list()
     total.degree[[1]] = rowSums(degree.intra)
-    total.degree[[2]] = rowSums(degree.inter)
+    total.degree[[2]] = rowSums(degree.inter[[1]])
     #print(total.degree[[1]])
     #print(total.degree[[2]])
-    print(paste(sprintf("iter=%d,loss=%f,l1=%f,l2=%f,",Z$iters,Z$diff,lambda1,lambda2),"intra.deg=",toString(total.degree[[1]]),"inter.deg=",toString(total.degree[[2]]),"intra.err=",toString(sprintf("%f",Z$validation.error[[1]])),"inter.err=",toString(sprintf("%f",Z$validation.error[[2]]))))
+    out_str = paste(sprintf("iter=%d,loss=%f,l1=%f,l2=%f,",Z$iters,Z$diff,lambda1,lambda2),"intra.deg=",toString(total.degree[[1]]),"inter.deg=",toString(total.degree[[2]]),"intra.err=",toString(sprintf("%f",Z$validation.error[[1]])),"inter.err=",toString(sprintf("%f",Z$validation.error[[2]])))
+    print(out_str)
+    observed_data = rbind(observed_data,c(Z$iters,Z$diff,lambda1,lambda2,total.degree[[1]],total.degree[[2]],Z$validation.error[[3]],Z$validation.error[[4]],Z$validation.error[[5]]))
+    #c("iter","loss","l1","l2",paste("deg.",tissues,sep=""),paste("deg.",inter_issue,sep=""),paste("val.err.",tissues,sep=""),paste("val.err.",inter_issue,sep=""),paste("intra.gene.err.",data1_dimname[1:length(Z$validation.error[[3]])],sep=""),paste("inter.gene.err.",data1_dimname[1:length(Z$validation.error[[4]])],sep=""))
   }
 }
-
+observed_data[2:dim(observed_data)[1],]
 
 plot(gra_intra[[4]],layout=layout.fruchterman.reingold)#edge.width=E(graj[[4]])$weight*10)
 adj = get.adjacency(gra_intra[[4]],attr='weight',sparse=FALSE)
