@@ -4,7 +4,7 @@ admm.intra = function(S,lambda1,lambda2,rho=1,rho.increment=1,weights,penalize.d
   K = length(S)
   p = dim(S[[1]])[2]
   n=weights
-  
+
   # initialize theta:
   theta = list()
   for(k in 1:K){theta[[k]] = diag(1/diag(S[[k]]))}
@@ -17,6 +17,8 @@ admm.intra = function(S,lambda1,lambda2,rho=1,rho.increment=1,weights,penalize.d
   # iterations:
   iter=0
   diff_value = 10
+  diff_valuez = 0
+  
   while((iter==0) || (iter<maxiter && diff_value > tol))
   {
     # reporting
@@ -60,11 +62,12 @@ admm.intra = function(S,lambda1,lambda2,rho=1,rho.increment=1,weights,penalize.d
     loss = 0; for(k in 1:K){loss = loss + sum(abs(theta[[k]]-Z[[k]]))}
     # increment rho by a constant factor:
     rho = rho*rho.increment
-    print(sprintf("iter = %d,change_theta = %0.15f,change_z = %0.15f,loss = %0.15f",iter,diff_value,diff_valuez,loss))
+    #print(sprintf("iter = %d,change_theta = %0.15f,change_z = %0.15f,loss = %0.15f",iter,diff_value,diff_valuez,loss))
   }
   
   diff = 0; for(k in 1:K){diff = diff + sum(abs(theta[[k]]-Z[[k]]))}
   out = list(theta=theta,Z=Z,diff=diff,iters=iter)
+  
   return(out)
 }
 

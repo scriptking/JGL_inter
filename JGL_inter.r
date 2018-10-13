@@ -5,7 +5,7 @@ JGL_inter <- function(Y,l1_lineage,lambda1=1,lambda2=1,rho=1,penalize.diagonal=F
   sample_size = dim(Y[[1]])[1]
   n = sample_size #total no of samples
   #n = rep(0,K)
-  print(sprintf("dimention=%d, classes=%d, sample=%d", p,K,sample_size))
+  #print(sprintf("dimention=%d, classes=%d, sample=%d", p,K,sample_size))
   #for(k in 1:K) {n[k] = dim(Y[[k]])[1]}---unequal sample size store in n[1] to n[K] variable
   
   # assign feature names if none exist:
@@ -13,7 +13,7 @@ JGL_inter <- function(Y,l1_lineage,lambda1=1,lambda2=1,rho=1,penalize.diagonal=F
   {
     for(k in 1:K)
     {
-      dimnames(Y[[k]])[[2]]=paste("gene ",1:p,sep="")
+      dimnames(Y[[k]])[[2]]=paste("gene ",1:p,sep=""  )
     }
   }
   
@@ -26,7 +26,15 @@ JGL_inter <- function(Y,l1_lineage,lambda1=1,lambda2=1,rho=1,penalize.diagonal=F
     }
   }
   
+  Y_valid = vector("list",length=K)
+  n_train = floor(n * .9)
+  for(k in 1:K)
+  {
+      Y_valid[[k]] = Y[[k]][1+n_train:n-1,]
+      Y[[k]] = Y[[k]][1:n_train,]
+  }
   # set weights to each class:
+  n = n_train
   weights = rep(n,K)
   
   ## define S_intra
@@ -41,7 +49,7 @@ JGL_inter <- function(Y,l1_lineage,lambda1=1,lambda2=1,rho=1,penalize.diagonal=F
   S_inter = vector("list",length=(K*(K-1))/2)
   k = 0 
   S_inter_seq = array(dim=c((K*(K-1))/2,2))
-  for(k1 in 1:K)
+  for(k1 in 1:(K-1))
   {
     for (k2 in setdiff(k1:K,k1)) 
     {
@@ -67,31 +75,40 @@ JGL_inter <- function(Y,l1_lineage,lambda1=1,lambda2=1,rho=1,penalize.diagonal=F
   }
   
   # run JGL for intra class:
-  print("before admm call for intra")
-  Theta = admm.intra(S_intra,lam1,lam2,rho=rho,penalize.diagonal=TRUE,weights=weights,maxiter=maxiter,tol=tol)
-  Theta_inter = admm.inter(S_inter,inter_lam1,inter_lam2,rho=rho,weights=rep(n,length(S_inter)),maxiter=maxiter,tol=tol)
-  
-  # update Theta with Theta's results:
-  theta_intra = list()
-  theta_inter = list()
-  for(k in 1:K) {theta_intra[[k]] = Theta$Z[[k]]}   
-  for(k in 1:length(S_inter)) {theta_inter[[k]] = Theta_inter$Z[[k]]} 
+  Theta = admm.iters(S_intra,S_inter,lam1,lam2,rho=rho,penalize.diagonal=TRUE,weights=weights,maxiter=maxiter,tol=tol)
   
   # round very small theta entries down to zero:
-  for(k in 1:K)
-  {
-    rounddown = abs(theta_intra[[k]])<tol; diag(rounddown)=FALSE
-    theta_intra[[k]]=theta_intra[[k]]*(1-rounddown)
+  rounddown = abs(Theta$Z)<tol;
+  Theta$Z=Theta$Z*(1-rounddown)
+  
+  theta_intra = vector("list",length=K)
+  for (k in 1:K) {
+    val = (k-1)*p
+    theta_intra[[k]] = array(0,dim=c(p,p))
+    for (i in 1:p) {
+      for (j in 1:p) {
+        theta_intra[[k]][i,j] = Theta$Z[val+i,val+j]
+      }
+    }
   }
-  
-  for(k in 1:length(S_inter))
-  {
-    rounddown = abs(theta_inter[[k]])<tol;
-    theta_inter[[k]]=theta_inter[[k]]*(1-rounddown)
+  theta_inter = vector("list",length=K*(K-1)/2)
+  count = 0
+  for (k1 in 1:(K-1)) {
+    for (k2 in setdiff(k1:K,k1)) {
+      val1 = (k1-1)*p
+      val2 = (k2-1)*p
+      count = count + 1
+      theta_inter[[count]] = array(0,dim=c(p,p))
+      for (i in 1:p) {
+        for (j in 1:p) {
+          theta_inter[[count]][i,j] = Theta$Z[val1+i,val2+j]
+        }
+      }
+    }
   }
+  validation.err = validation(Theta$Z,Y_valid)
   
-  out = list(theta.intra=theta_intra,diff.intra=Theta$diff,iters.intra=Theta$iter,theta.inter=theta_inter,diff.inter=Theta_inter$diff,iters.inter=Theta_inter$iter)
-  
+  out = list(theta.intra=theta_intra,diff=Theta$diff,iters=Theta$iters,theta.inter=theta_inter,validation.error = validation.err)
   
   return(out)
 }

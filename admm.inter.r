@@ -59,11 +59,12 @@ admm.inter = function(S,lambda1,lambda2,rho=1,rho.increment=1,weights,maxiter = 
     loss = 0; for(k in 1:K){loss = loss + sum(abs(theta[[k]]-Z[[k]]))}
     # increment rho by a constant factor:
     rho = rho*rho.increment
-    print(sprintf("iter = %d,change_theta = %0.15f,change_z = %0.15f,loss = %0.15f",iter,diff_value,diff_valuez,loss))
+    #print(sprintf("iter = %d,change_theta = %0.15f,change_z = %0.15f,loss = %0.15f",iter,diff_value,diff_valuez,loss))
   }
   
   diff = 0; for(k in 1:K){diff = diff + sum(abs(theta[[k]]-Z[[k]]))}
   out = list(theta=theta,Z=Z,diff=diff,iters=iter)
+  #print(sprintf("iter = %d,change_theta = %0.15f,change_z = %0.15f,loss = %0.15f",iter,diff_value,diff_valuez,loss))
   return(out)
 }
 

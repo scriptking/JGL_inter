@@ -1,82 +1,143 @@
 ### ADMM for FGL:
-admm.iters = function(Y,lambda1,lambda2,penalty="fused",rho=1,rho.increment=1,weights,penalize.diagonal,maxiter = 1000,tol=1e-5,warm=NULL)
+admm.iters = function(S_intra,S_inter,lambda1,lambda2,rho=1,rho.increment=1,weights,penalize.diagonal,maxiter = 1000,tol=1e-5)
 {
-	K = length(Y)
-	p = dim(Y[[1]])[2]
-	n=weights
-
-	ns = c(); for(k in 1:K){ns[k] = dim(Y[[k]])[1]}
-	S = list(); for(k in 1:K){S[[k]] = cov(Y[[k]])*(ns[k]-1)/ns[k]}
-
-	# initialize theta:
-	theta = list()
-	for(k in 1:K){theta[[k]] = diag(1/diag(S[[k]]))}
-	# initialize Z:
-	Z = list(); for(k in 1:K){Z[[k]]=matrix(0,p,p)}
-	# initialize W:
-	W = list();	for(k in 1:K) {W[[k]] = matrix(0,p,p) }
-
-	# initialize lambdas:  (shouldn't need to do this if the function is called from the main wrapper function, JGL)
-	lam1 = penalty.as.matrix(lambda1,p,penalize.diagonal=penalize.diagonal)
-	if(penalty=="fused") {lam2 = penalty.as.matrix(lambda2,p,penalize.diagonal=TRUE)}
-	if(penalty=="group") {lam2 = penalty.as.matrix(lambda2,p,penalize.diagonal=penalize.diagonal)}
-	# iterations:
-	iter=0
-	diff_value = 10
-	while((iter==0) || (iter<maxiter && diff_value > tol))
-	{
-		# reporting
-#	if(iter%%10==0)
-		if(FALSE)
-		{
-			print(paste("iter=",iter))
-			if(penalty=="fused")
-			{
-				print(paste("crit=",crit(theta,S,n=rep(1,K),lam1,lam2,penalize.diagonal=penalize.diagonal)))
-				print(paste("crit=",crit(Z,S,n=rep(1,K),lam1,lam2,penalize.diagonal=penalize.diagonal)))
-			}
-			if(penalty=="group"){print(paste("crit=",gcrit(theta,S,n=rep(1,K),lam1,lam2,penalize.diagonal=penalize.diagonal)))}
-		}
-
-		# update theta:
-		theta.prev = theta
-		for(k in 1:K){
-			edecomp = eigen(S[[k]] - rho*Z[[k]]/n[k] + rho*W[[k]]/n[k])
-			D = edecomp$values
-			V = edecomp$vectors
-			D2 = n[k]/(2*rho) * ( -D + sqrt(D^2 + 4*rho/n[k]) )
-			theta[[k]] = V %*% diag(D2) %*% t(V)
-		}
-
-		# update Z:
-		# define A matrices:
-		A = list()
-		for(k in 1:K){ A[[k]] = theta[[k]] + W[[k]] }
-		if(penalty=="fused")
-		{
-			# use flsa to minimize rho/2 ||Z-A||_F^2 + P(Z):
-			if(K==2){Z = flsa2(A,rho,lam1,lam2,penalize.diagonal=TRUE)}
-			if(K>2){Z = flsa.general(A,rho,lam1,lam2,penalize.diagonal=TRUE)}  # the option to not penalize the diagonal is exercised when we initialize the lambda matrices
-		}
-		if(penalty=="group")
-		{
-			#  minimize rho/2 ||Z-A||_F^2 + P(Z):
-	   		Z = dsgl(A,rho,lam1,lam2,penalize.diagonal=TRUE)
-		}
-
-		# update the dual variable W:
-		for(k in 1:K){W[[k]] = W[[k]] + (theta[[k]]-Z[[k]])}
-
-		# bookkeeping:
-		iter = iter+1
-	  	diff_value = 0
-	       for(k in 1:K) {diff_value = diff_value + sum(abs(theta[[k]] - theta.prev[[k]])) / sum(abs(theta.prev[[k]]))}
-		# increment rho by a constant factor:
-		rho = rho*rho.increment
-	}
-	diff = 0; for(k in 1:K){diff = diff + sum(abs(theta[[k]]-Z[[k]]))}
-	out = list(theta=theta,Z=Z,diff=diff,iters=iter)
-	return(out)
+  K = length(S_intra)
+  p = dim(S_intra[[1]])[2]
+  n=weights
+  
+  S_big = array(0,dim=c(K*p,K*p))
+  for (k in 1:K) {
+    val = (k-1)*p
+    for (i in 1:p) {
+      for (j in 1:p) {
+        S_big[val+i,val+j] = S_intra[[k]][i,j]
+      }
+    }
+  }
+  count = 0
+  for (k1 in 1:(K-1)) {
+    for (k2 in setdiff(k1:K,k1)) {
+      val1 = (k1-1)*p
+      val2 = (k2-1)*p
+      count = count + 1
+      for (i in 1:p) {
+        for (j in 1:p) {
+          S_big[val1+i,val2+j] = S_inter[[count]][i,j]
+          S_big[val2+j,val1+i] = S_inter[[count]][i,j]
+        }
+      }
+    }
+  }
+  # initialize theta:
+  theta = array(1,dim=c(K*p,K*p))
+  # initialize Z:
+  Z = array(0,dim=c(K*p,K*p))
+  # initialize W:
+  W = array(0,dim=c(K*p,K*p))
+  
+  
+  # iterations:
+  iter=0
+  diff_value = 10
+  diff_valuez = 0
+  
+  while((iter==0) || (iter<maxiter && diff_value > tol))
+  {
+    # reporting
+    #	if(iter%%10==0)
+    if(FALSE)
+    {
+      #print(paste("crit=",crit(theta,S,n=rep(1,K),lam1,lam2,penalize.diagonal=penalize.diagonal)))
+      #print(paste("crit=",crit(Z,S,n=rep(1,K),lam1,lam2,penalize.diagonal=penalize.diagonal)))
+    }
+    
+    
+    # update theta:
+    theta.prev = theta
+    edecomp = eigen(S_big - rho*Z/n + rho*W/n)
+    D = edecomp$values
+    V = edecomp$vectors
+    D2 = n/(2*rho) * ( -D + sqrt(D^2 + 4*rho/n) )
+    theta = V %*% diag(D2) %*% t(V)
+    
+    
+    # update Z:
+    # define A matrices:
+    A = theta + W
+    
+    # use flsa to minimize rho/2 ||Z-A||_F^2 + P(Z):
+    Z.prev = Z
+    
+    A_intra = vector("list",length=K)
+    for (k in 1:K) {
+      val = (k-1)*p
+      A_intra[[k]] = array(0,dim=c(p,p))
+      for (i in 1:p) {
+        for (j in 1:p) {
+          A_intra[[k]][i,j] = A[val+i,val+j]
+        }
+      }
+    }
+    A_inter = vector("list",length=K*(K-1)/2)
+    count = 0
+    for (k1 in 1:(K-1)) {
+      for (k2 in setdiff(k1:K,k1)) {
+        val1 = (k1-1)*p
+        val2 = (k2-1)*p
+        count = count + 1
+        A_inter[[count]] = array(0,dim=c(p,p))
+        for (i in 1:p) {
+          for (j in 1:p) {
+            A_inter[[count]][i,j] = A[val1+i,val2+j]
+          }
+        }
+      }
+    }
+    
+    #if(K==2){Z = flsa2(A,rho,lambda1,lambda2,penalize.diagonal=TRUE)}
+    Z_intra = flsa.general(A_intra,rho,lambda1,lambda2,penalize.diagonal=TRUE)  # the option to not penalize the diagonal is exercised when we initialize the lambda matrices
+    Z_inter = flsa.inter.general(A_inter,rho,lambda1,lambda2,penalize.diagonal=FALSE) # the option to not penalize the diagonal is exercised when we initialize the lambda matrices
+    # update the dual variable W:
+    
+    Z = array(0,dim=c(K*p,K*p))
+    for (k in 1:K) {
+      val = (k-1)*p
+      for (i in 1:p) {
+        for (j in 1:p) {
+          Z[val+i,val+j] = Z_intra[[k]][i,j]
+        }
+      }
+    }
+    count = 0
+    for (k1 in 1:(K-1)) {
+      for (k2 in setdiff(k1:K,k1)) {
+        val1 = (k1-1)*p
+        val2 = (k2-1)*p
+        count = count + 1
+        for (i in 1:p) {
+          for (j in 1:p) {
+            Z[val1+i,val2+j] = Z_inter[[count]][i,j]
+            Z[val2+j,val1+i] = Z_inter[[count]][i,j]
+          }
+        }
+      }
+    }
+    W = W + (theta-Z)
+    
+    # bookkeeping:
+    iter = iter+1
+    diff_value = sum(abs(theta - theta.prev)) / sum(abs(theta.prev))
+    diff_valuez = sum(abs(Z - Z.prev)) / sum(abs(Z.prev))
+    loss = sum(abs(theta - Z))
+    # increment rho by a constant factor:
+    rho = rho*rho.increment
+    #print(sprintf("iter = %d,change_theta = %0.15f,change_z = %0.15f,loss = %0.15f",iter,diff_value,diff_valuez,loss))
+  }
+  
+  diff = sum(abs(theta - Z))
+  out = list(theta=theta,Z=Z,theta_diff=diff_value,Z_diff=diff_valuez,diff=loss,iters=iter)
+  
+  return(out)
 }
 
 
