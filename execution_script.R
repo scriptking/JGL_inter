@@ -44,7 +44,7 @@ sorted_index = sorted_mean$ix
 #DATA[[1]][2,sorted_index[1:10]+1]
 
 DATA1 = list()
-p = 10
+p = 50
 for (k in 1:K) {
   DATA1[[k]] = DATA[[k]][,sorted_index[1:p]+1]
 }
@@ -82,8 +82,8 @@ lambda2=2
 rho=1;penalize.diagonal=FALSE;maxiter=1000;tol=1e-5
 
 DATA = list()
-#list_lambda = c(0.1,0.4,0.8,1.1,1.5,2,3,5)
-list_lambda = c(0.1,0.2)
+list_lambda = c(0.1,0.4,0.8,1.1,1.5,2,3,5)
+#list_lambda = c(0.1,0.2)
 out_data = list()
 count = 0
 #col_name = c("iter","loss","l1","l2",paste("deg.",tissues,sep=""),paste("deg.",inter_issue,sep=""),paste("intra.gene.err.g2.",data1_dimname[1:floor(p/2)],sep=""),paste("intra.gene.err.g1.",data1_dimname[(1+floor(p/2)):p],sep=""),paste("inter.gene.err.g2.",data1_dimname,sep=""),paste("inter.gene.err.g1.",data1_dimname,sep=""))
@@ -118,7 +118,7 @@ for (x in 1:length(list_lambda)) {
   }
 }
 observed_data = observed_data[2:dim(observed_data)[1],]
-print(observed_data)
+#print(observed_data)
 
 library(writexl)
 write_xlsx(data.frame(observed_data), "/home/manas/JGL_inter/observed_data.xlsx")
