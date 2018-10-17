@@ -3,6 +3,7 @@ validation <- function(covar, valid) {
   intra_error = array(0, dim = length(valid))
   p = dim(valid[[1]])[2]
   intra_err = array(0,dim=c(length(valid),p))
+  intra_err_percent = array(0,dim=c(length(valid),p))
   for (k in 1:length(valid)) {
     val = (k - 1) * p
     sig = array(0, dim = c(p, p))
@@ -25,15 +26,19 @@ validation <- function(covar, valid) {
       pred1 =  temp1 %*% t(valid[[k]][i, 1:floor(p / 2)])
       ground1 = t(valid[[k]][i, (floor(p / 2) + 1):p])
       intra_err[k,] = intra_err[k,] + cbind(abs(t(pred) - t(ground)),abs(t(pred1) - t(ground1)))
+      intra_err_percent[k,] = intra_err_percent[k,] + cbind((abs(t(pred) - t(ground))*100)/abs(t(ground)),(abs(t(pred1) - t(ground1))*100)/abs(t(ground1)))
     }
     intra_error[k] = val / i
   }
   intra_err = intra_err / i
+  intra_err_percent = intra_err_percent / i
   
   K = length(valid)*(length(valid)-1)/2
   inter_error = array(0, dim = K)
   inter_err = array(0,dim=c(K,p))
   inter_err1 = array(0,dim=c(K,p))
+  inter_err_percent_g2 = array(0,dim=c(K,p))
+  inter_err_percent_g1 = array(0,dim=c(K,p))
   count = 0
   for (k1 in 1:(length(valid)-1)) {
     for (k2 in setdiff(k1:length(valid),k1)) {
@@ -64,15 +69,23 @@ validation <- function(covar, valid) {
       ground1 = t(valid[[k2]][i, ])
       inter_err[count,] = inter_err[count,] + abs(t(pred) - t(ground))
       inter_err1[count,] = inter_err1[count,] + abs(t(pred1) - t(ground1))
-      
+      inter_err_percent_g2[count,] = inter_err_percent_g2[count,] + (abs(t(pred) - t(ground))*100)/abs(t(ground))
+      inter_err_percent_g1[count,] = inter_err_percent_g1[count,] + (abs(t(pred1) - t(ground1))*100)/abs(t(ground1))
     }
     inter_error[count] = val / i
     }
   }
   inter_err = inter_err / i
   inter_err1 = inter_err1 / i
+  inter_err_percent_g2 = inter_err_percent_g2 / i
+  inter_err_percent_g1 = inter_err_percent_g1 / i
+  
   intra_gene_err = colSums(intra_err)/dim(intra_err)[1]
   inter_gene_err = colSums(inter_err)/dim(inter_err)[1]
   inter_gene_err1 = colSums(inter_err1)/dim(inter_err1)[1]
-  return(list(intra_error,inter_error,intra_gene_err,inter_gene_err,inter_gene_err1,intra_err,inter_err,inter_err1))
+  intra_err_gene_percent = colSums(intra_err_percent)/dim(intra_err_percent)[1]
+  inter_err_gene_percent_g2 = colSums(inter_err_percent_g2)/dim(inter_err_percent_g2)[1]
+  inter_err_gene_percent_g1 = colSums(inter_err_percent_g1)/dim(inter_err_percent_g1)[1]
+  
+  return(list(intra_error,inter_error,intra_gene_err,inter_gene_err,inter_gene_err1,intra_err,inter_err,inter_err1,intra_err_gene_percent,inter_err_gene_percent_g2,inter_err_gene_percent_g1))
 }

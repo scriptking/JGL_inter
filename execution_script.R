@@ -1,6 +1,6 @@
 #load("~/JGL/example.data.rda")
 #Y = example.data
-
+library(writexl)
 DATA = list()
 DATA[[1]] = read.csv("~/JGL_inter/gene_adip.csv") ######1st column is identifier
 DATA[[2]] = read.csv("~/JGL_inter/gene_musc.csv")
@@ -44,7 +44,7 @@ sorted_index = sorted_mean$ix
 #DATA[[1]][2,sorted_index[1:10]+1]
 
 DATA1 = list()
-p = 50
+p = 10
 for (k in 1:K) {
   DATA1[[k]] = DATA[[k]][,sorted_index[1:p]+1]
 }
@@ -82,13 +82,17 @@ lambda2=2
 rho=1;penalize.diagonal=FALSE;maxiter=1000;tol=1e-5
 
 DATA = list()
-list_lambda = c(0.1,0.4,0.8,1.1,1.5,2,3,5)
-#list_lambda = c(0.1,0.2)
+#list_lambda = c(0.05,0.075,0.1,0.4,0.8,1.3,2,3)
+list_lambda = c(0.1,0.2)
 out_data = list()
 count = 0
 #col_name = c("iter","loss","l1","l2",paste("deg.",tissues,sep=""),paste("deg.",inter_issue,sep=""),paste("intra.gene.err.g2.",data1_dimname[1:floor(p/2)],sep=""),paste("intra.gene.err.g1.",data1_dimname[(1+floor(p/2)):p],sep=""),paste("inter.gene.err.g2.",data1_dimname,sep=""),paste("inter.gene.err.g1.",data1_dimname,sep=""))
 col_name = c("iter","loss","l1","l2",paste("deg.",tissues,sep=""),paste("tra.g2.",data1_dimname[1:floor(p/2)],sep=""),paste("tra.g1.",data1_dimname[(1+floor(p/2)):p],sep=""),paste("ter.g2.",data1_dimname,sep=""),paste("ter.g1.",data1_dimname,sep=""))
+percent_err_col_name = c("iter","loss","l1","l2",paste("tra.g2.per.",data1_dimname[1:floor(p/2)],sep=""),paste("tra.g1.per.",data1_dimname[(1+floor(p/2)):p],sep=""),paste("ter.avg.per.",data1_dimname,sep=""),paste("ter.g2.per.",data1_dimname,sep=""),paste("ter.g1.per.",data1_dimname,sep=""))
+
 observed_data = matrix(nrow = 1, ncol = length(col_name), dimnames = list(1,col_name))
+observed_data_per = matrix(nrow = 1, ncol = length(percent_err_col_name), dimnames = list(1,percent_err_col_name))
+
 for (x in 1:length(list_lambda)) {
   for (y in 1:length(list_lambda)) {
     count = count + 1
@@ -114,18 +118,23 @@ for (x in 1:length(list_lambda)) {
     #observed_data = rbind(observed_data,c(Z$iters,Z$diff,lambda1,lambda2,total.degree[[1]],total.degree[[2]],Z$validation.error[[3]],Z$validation.error[[4]],Z$validation.error[[5]]))
     #c("iter","loss","l1","l2",paste("deg.",tissues,sep=""),paste("deg.",inter_issue,sep=""),paste("val.err.",tissues,sep=""),paste("val.err.",inter_issue,sep=""),paste("intra.gene.err.",data1_dimname[1:length(Z$validation.error[[3]])],sep=""),paste("inter.gene.err.",data1_dimname[1:length(Z$validation.error[[4]])],sep=""))
     observed_data = rbind(observed_data,c(Z$iters,Z$diff,lambda1,lambda2,total.degree[[1]],Z$validation.error[[3]],Z$validation.error[[4]],Z$validation.error[[5]]))
-    #
+    avg_err_per_inter = (Z$validation.error[[10]] + Z$validation.error[[11]])/2
+    observed_data_per = rbind(observed_data_per,c(Z$iters,Z$diff,lambda1,lambda2,Z$validation.error[[9]],avg_err_per_inter,Z$validation.error[[10]],Z$validation.error[[11]]))
+    print(count)
+    write_xlsx(data.frame(observed_data), "/home/manas/JGL_inter/observed_data_error.xlsx")
+    write_xlsx(data.frame(observed_data_per), "/home/manas/JGL_inter/observed_data_percent.xlsx")
   }
 }
 observed_data = observed_data[2:dim(observed_data)[1],]
+observed_data_per = observed_data_per[2:dim(observed_data_per)[1],]
 #print(observed_data)
 
-library(writexl)
-write_xlsx(data.frame(observed_data), "/home/manas/JGL_inter/observed_data.xlsx")
+write_xlsx(data.frame(observed_data), "/home/manas/JGL_inter/observed_data_error.xlsx")
+write_xlsx(data.frame(observed_data_per), "/home/manas/JGL_inter/observed_data_percent.xlsx")
 
-plot(gra_intra[[4]],layout=layout.fruchterman.reingold)#edge.width=E(graj[[4]])$weight*10)
-adj = get.adjacency(gra_intra[[4]],attr='weight',sparse=FALSE)
-
+#plot(gra_intra[[4]],layout=layout.fruchterman.reingold)#edge.width=E(graj[[4]])$weight*10)
+#adj = get.adjacency(gra_intra[[4]],attr='weight',sparse=FALSE)
+if(FALSE){
 plot(gra_intra[[4]],				#the graph to be plotted
      layout=layout.fruchterman.reingold,	# the layout method. see the igraph documentation for details
      main='layer 4',	#specifies the title
@@ -135,5 +144,5 @@ plot(gra_intra[[4]],				#the graph to be plotted
      vertex.label.font=2,			#the font of the name labels
      vertex.label=NA, #V(graj[[4]])$name,		#specifies the lables of the vertices. in this case the 'name' attribute is used
      vertex.label.cex=1,			#specifies the size of the font of the labels. can also be made to vary
-     vertex.size=5
-)
+     vertex.size=5)
+}
