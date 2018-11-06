@@ -1,6 +1,21 @@
-#load("~/JGL/example.data.rda")
-#Y = example.data
 library(writexl)
+library(corrplot)
+source('~/JGL_inter/JGL_inter.r')
+source('~/JGL_inter/penalty.as.matrix.R')
+source('~/JGL_inter/flsa.general.R')
+source('~/JGL_inter/soft.R')
+source('~/JGL_inter/admm.intra.r')
+source('~/JGL_inter/admm.inter.r')
+source('~/JGL_inter/admm.iters.r')
+source('~/JGL_inter/validation_intra.R')
+source('~/JGL_inter/validation_inter.R')
+source('~/JGL_inter/penalty.as.matrix.inter.R')
+source('~/JGL_inter/flsa.inter.general.r')
+source('~/JGL_inter/make.adj.matrix.R')
+source('~/JGL_inter/net.degree.R')
+source('~/JGL_inter/r2error.R')
+source('~/JGL_inter/validation.R')
+
 DATA = list()
 DATA[[1]] = read.csv("~/JGL_inter/gene_adip.csv") ######1st column is identifier
 DATA[[2]] = read.csv("~/JGL_inter/gene_musc.csv")
@@ -9,7 +24,7 @@ DATA[[4]] = read.csv("~/JGL_inter/gene_thyr.csv")
 
 tissues = array(c("adip","musc","skin","thyr"))
 
-K = 4
+K = length(DATA)
 p_o = dim(DATA[[1]])[2]
 
 inter_issue = array(dim = (K*(K-1))/2)
@@ -21,56 +36,34 @@ for (k1 in 1:(K-1)) {
   }
 }
 
-vardata = array(dim=c(K,p_o-1))
-for(k in 1:K)
-{
-  for(j in 2:p_o)
-  {
-    vardata[k,j-1] = var(DATA[[k]][,j])
-  }
-}
-meandata = array(dim=c(1,p_o-1))
-for(k in 1:K)
-{
-  for(j in 1:p_o-1)
-  {
-    meandata[j] = mean(vardata[,j])
-  }
-}
+for (k in 1:K) 
+  DATA[[k]] = DATA[[k]][,2:p_o]
 
-dim_name = dimnames(DATA[[1]])[[2]][2:p_o]
+p = p_o - 1
+vardata = array(dim=c(K,p))
+
+for(k in 1:K)
+  for(j in 1:p)
+    vardata[k,j] = var(DATA[[k]][,j])
+
+meandata = array(dim=c(1,p))
+for(k in 1:K)
+  for(j in 1:p)
+    meandata[j] = mean(vardata[,j])
+
+dim_name = dimnames(DATA[[1]])[[2]]
 sorted_mean = sort(meandata,decreasing = TRUE, index.return=TRUE)
 sorted_index = sorted_mean$ix
-#DATA[[1]][2,sorted_index[1:10]+1]
+
+#for (k in 1:K) 
+#  DATA[[k]] = DATA[[k]][,sorted_index[1:10000]]
+
 
 DATA1 = list()
 p = 10
-for (k in 1:K) {
-  DATA1[[k]] = DATA[[k]][,sorted_index[1:p]+1]
-}
+for (k in 1:K)
+  DATA1[[k]] = DATA[[k]][,sorted_index[1:p]]
 data1_dimname = dim_name[sorted_index[1:p]]
-
-if(FALSE) {
-DATA1[[1]] = DATA[[1]][,sorted_index[1:100]+1]
-DATA1[[2]] = DATA[[2]][,sorted_index[1:100]+1]
-DATA1[[3]] = DATA[[3]][,sorted_index[1:100]+1]
-DATA1[[4]] = DATA[[4]][,sorted_index[1:100]+1]
-data1_dimname = dim_name[sorted_index[1:100]]
-p = dim(DATA1[[1]])[2]
-}
-
-source('~/JGL_inter/JGL_inter.r')
-source('~/JGL_inter/penalty.as.matrix.R')
-source('~/JGL_inter/flsa.general.R')
-source('~/JGL_inter/soft.R')
-source('~/JGL_inter/admm.intra.r')
-source('~/JGL_inter/admm.inter.r')
-source('~/JGL_inter/admm.iters.r')
-source('~/JGL_inter/validation.R')
-source('~/JGL_inter/penalty.as.matrix.inter.R')
-source('~/JGL_inter/flsa.inter.general.r')
-source('~/JGL_inter/make.adj.matrix.R')
-source('~/JGL_inter/net.degree.R')
 
 l1.lineage = array(0,dim=c(1,(K*(K-1)/2)))
 l1.lineage[1] = 2
@@ -82,6 +75,7 @@ lambda2=2
 rho=1;penalize.diagonal=FALSE;maxiter=1000;tol=1e-5
 
 DATA = list()
+
 #list_lambda = c(0.05,0.075,0.1,0.4,0.8,1.3,2,3)
 list_lambda = c(0.1,0.2)
 out_data = list()
@@ -117,20 +111,20 @@ for (x in 1:length(list_lambda)) {
     #print(out_str)
     #observed_data = rbind(observed_data,c(Z$iters,Z$diff,lambda1,lambda2,total.degree[[1]],total.degree[[2]],Z$validation.error[[3]],Z$validation.error[[4]],Z$validation.error[[5]]))
     #c("iter","loss","l1","l2",paste("deg.",tissues,sep=""),paste("deg.",inter_issue,sep=""),paste("val.err.",tissues,sep=""),paste("val.err.",inter_issue,sep=""),paste("intra.gene.err.",data1_dimname[1:length(Z$validation.error[[3]])],sep=""),paste("inter.gene.err.",data1_dimname[1:length(Z$validation.error[[4]])],sep=""))
-    observed_data = rbind(observed_data,c(Z$iters,Z$diff,lambda1,lambda2,total.degree[[1]],Z$validation.error[[3]],Z$validation.error[[4]],Z$validation.error[[5]]))
-    avg_err_per_inter = (Z$validation.error[[10]] + Z$validation.error[[11]])/2
-    observed_data_per = rbind(observed_data_per,c(Z$iters,Z$diff,lambda1,lambda2,Z$validation.error[[9]],avg_err_per_inter,Z$validation.error[[10]],Z$validation.error[[11]]))
+    #observed_data = rbind(observed_data,c(Z$iters,Z$diff,lambda1,lambda2,total.degree[[1]],Z$validation.error[[3]],Z$validation.error[[4]],Z$validation.error[[5]]))
+    avg_err_per_inter = (Z$validation.inter[[1]] + Z$validation.inter[[2]])/2
+    observed_data_per = rbind(observed_data_per,c(Z$iters,Z$diff,lambda1,lambda2,Z$validation.intra[[1]],avg_err_per_inter,Z$validation.inter[[1]],Z$validation.inter[[2]]))
     print(count)
-    write_xlsx(data.frame(observed_data), "/home/manas/JGL_inter/observed_data_error.xlsx")
-    write_xlsx(data.frame(observed_data_per), "/home/manas/JGL_inter/observed_data_percent.xlsx")
+    #write_xlsx(data.frame(observed_data), "/home/manas/JGL_inter/observed_data_error.xlsx")
+    #write_xlsx(data.frame(observed_data_per), "/home/manas/JGL_inter/observed_data_percent_1.xlsx")
   }
 }
-observed_data = observed_data[2:dim(observed_data)[1],]
+#observed_data = observed_data[2:dim(observed_data)[1],]
 observed_data_per = observed_data_per[2:dim(observed_data_per)[1],]
 #print(observed_data)
 
-write_xlsx(data.frame(observed_data), "/home/manas/JGL_inter/observed_data_error.xlsx")
-write_xlsx(data.frame(observed_data_per), "/home/manas/JGL_inter/observed_data_percent.xlsx")
+#write_xlsx(data.frame(observed_data), "/home/manas/JGL_inter/observed_data_error.xlsx")
+write_xlsx(data.frame(observed_data_per), "/home/manas/JGL_inter/observed_data_percent_1.xlsx")
 
 #plot(gra_intra[[4]],layout=layout.fruchterman.reingold)#edge.width=E(graj[[4]])$weight*10)
 #adj = get.adjacency(gra_intra[[4]],attr='weight',sparse=FALSE)
@@ -146,3 +140,55 @@ plot(gra_intra[[4]],				#the graph to be plotted
      vertex.label.cex=1,			#specifies the size of the font of the labels. can also be made to vary
      vertex.size=5)
 }
+
+library(mvtnorm)
+library(corrplot)
+library(glmnet)
+library(clusterGeneration)
+
+k=10 # = Number of Candidate Variables
+p=5 # = Number of Relevant Variables
+N=500 # = Number of observations
+betas=(-1)^(1:p) # = Values for beta
+set.seed(12345) # = Seed for replication
+sigma1=genPositiveDefMat(k,"unifcorrmat")$Sigma # = Sigma1 violates the irc
+sigma2=sigma1 # = Sigma2 satisfies the irc
+sigma2[(p+1):k,1:p]=0
+sigma2[1:p,(p+1):k]=0
+
+# = Verify the irrepresentable condition
+irc1=sort(abs(sigma1[(p+1):k,1:p]%*%solve(sigma1[1:p,1:p])%*%sign(betas)))
+irc2=sort(abs(sigma2[(p+1):k,1:p]%*%solve(sigma2[1:p,1:p])%*%sign(betas)))
+c(max(irc1),max(irc2))
+
+par(mfrow=c(1,2))
+corrplot(cov2cor(sigma1))
+corrplot(cov2cor(sigma2))
+#type="upper", order="hclust", col=c("black", "white"),bg="lightblue")
+data(iris)
+classes <- iris$Species
+variables <- iris[,1:4]
+ccres <- corclust(variables, classes)
+plot(ccres, mincor = 0.6)
+
+library(igraph)
+# prevent duplicated pairs
+var.corelation <- cor(DATA[[1]][,sorted_index[1:100]+1])
+check.corelation <- which(abs(var.corelation)>0.7, arr.ind=TRUE)
+
+graph.cor <- graph.data.frame(check.corelation, directed = FALSE)
+groups.cor <- split(unique(as.vector(check.corelation)),clusters(graph.cor)$membership)
+lapply(groups.cor,FUN=function(list.cor){rownames(var.corelation)[list.cor]})
+
+library(igraph)
+matt = DATA[[1]]
+corr = cor(matt[,1:100])
+colnames(corr) <- 1:40
+check.corelation <- which(abs(corr)>0.7, arr.ind=TRUE)
+graph.cor <- graph.data.frame(check.corelation, directed = FALSE)
+groups.cor <- split(unique(as.vector(check.corelation)),clusters(graph.cor)$membership)
+lapply(groups.cor,FUN=function(list.cor){rownames(corr)[list.cor]})
+out = corrplot(corr,order = "hclust", addrect = 8)
+datas = dimnames(out)
+
+corrMatOrder(corr, order = "hclust", hclust.method = "ward.D2")

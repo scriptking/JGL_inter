@@ -1,30 +1,23 @@
-JGL_inter <- function(Y,l1_lineage,lambda1=1,lambda2=1,rho=1,penalize.diagonal=FALSE,maxiter=500,tol=1e-5) {
+JGL_inter <- function(Y,l1_lineage,lambda1=1,lambda2=1,rho=1,penalize.diagonal=FALSE,maxiter=500,tol=1e-5,pred=0) {
   
-  p = dim(Y[[1]])[2] # No of genes  i.e. dimention size
-  K = length(Y) # No of tissues i.e. total classes
+  p = dim(Y[[1]])[2]              # No of genes  i.e. dimention size
+  K = length(Y)                   # No of tissues i.e. total classes
   sample_size = dim(Y[[1]])[1]
-  n = sample_size #total no of samples
-  #n = rep(0,K)
-  #print(sprintf("dimention=%d, classes=%d, sample=%d", p,K,sample_size))
-  #for(k in 1:K) {n[k] = dim(Y[[k]])[1]}---unequal sample size store in n[1] to n[K] variable
+  n = sample_size                 #total no of samples
+
   
   # assign feature names if none exist:
   if(length(dimnames(Y[[1]])[[2]])==0)
-  {
     for(k in 1:K)
-    {
-      dimnames(Y[[k]])[[2]]=paste("gene ",1:p,sep=""  )
-    }
-  }
-  
+      dimnames(Y[[k]])[[2]]=paste("dim_",1:p,sep="")
+    
   # mean-normalize Y:
   for(k in 1:K)
-  {
-    for(j in 1:p)
-    {
-      Y[[k]][,j] = Y[[k]][,j]-mean(Y[[k]][,j])
-    }
-  }
+    Y[[k]] = scale(Y[[k]], center = TRUE, scale = TRUE)
+    #for(j in 1:p)
+      #Y[[k]][,j] = Y[[k]][,j]-mean(Y[[k]][,j])
+  
+  
   
   Y_valid = vector("list",length=K)
   n_train = floor(n * .9)
@@ -106,9 +99,9 @@ JGL_inter <- function(Y,l1_lineage,lambda1=1,lambda2=1,rho=1,penalize.diagonal=F
       }
     }
   }
-  validation.err = validation(Theta$Z,Y_valid)
-  
-  out = list(theta.intra=theta_intra,diff=Theta$diff,iters=Theta$iters,theta.inter=theta_inter,validation.error = validation.err)
+  inverse_covar = solve(Theta$Z)
+  #validation.total_inter = validation(inverse_covar,Y_valid,2,0.2)
+  out = list(whole.sigma=inverse_covar,valid.data=Y_valid,theta.intra=theta_intra,diff=Theta$diff,iters=Theta$iters,theta.inter=theta_inter)
   
   return(out)
 }
