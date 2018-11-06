@@ -78,17 +78,10 @@ DATA = list()
 
 list_lambda = c(0.05,0.075,0.1,0.4,0.8,1.3,2,3)
 #list_lambda = c(0.1,0.2)
-out_data = list()
 count = 0
-col_name = c("iter","loss","l1","l2",paste("deg.",tissues,sep=""),paste("tra.g2.",data1_dimname[1:floor(p/2)],sep=""),paste("tra.g1.",data1_dimname[(1+floor(p/2)):p],sep=""),paste("ter.g2.",data1_dimname,sep=""),paste("ter.g1.",data1_dimname,sep=""))
-percent_err_col_name = c("iter","loss","l1","l2",paste("tra.g2.per.",data1_dimname[1:floor(p/2)],sep=""),paste("tra.g1.per.",data1_dimname[(1+floor(p/2)):p],sep=""),paste("ter.avg.per.",data1_dimname,sep=""),paste("ter.g2.per.",data1_dimname,sep=""),paste("ter.g1.per.",data1_dimname,sep=""))
 
 xl_col = c("iter","loss","l1","l2","total.edges.intra","total.edges.inter","avg.intra.unrelated.feature.percent.error.g2","avg.intra.unrelated.feature.r2.error.g2",
            "avg.intra.related.feature.percent.error.g2","avg.intra.related.feature.r2.error.g2")
-
-observed_data = matrix(nrow = 1, ncol = 10)#length(col_name)) #dimnames = list(1,col_name))
-#observed_data_per = matrix(nrow = 1, ncol = 10)#length(percent_err_col_name), dimnames = list(1,percent_err_col_name))
-
 observed_data_per = matrix(nrow = 1, ncol = length(xl_col), dimnames = list(1,xl_col))
 
 for (x in 1:length(list_lambda)) {
@@ -123,23 +116,3 @@ write_xlsx(data.frame(observed_data_per), "/home/manas/JGL_inter/valid_data_deta
 # colnames(corr) <- 1:p
 # out = corrplot(corr,order = "hclust", addrect = 8,hclust.method = "ward.D2")
 # corrMatOrder(corr, order = "hclust", hclust.method = "ward.D2")
-
-
-
-# load libraries
-library(caret)
-# load the dataset
-data(iris)
-# summarize data
-summary(iris[,1:4])
-# calculate the pre-process parameters from the dataset
-preprocessParams <- preProcess(iris[,1:4], method=c("center", "scale"))
-# summarize transform parameters
-print(preprocessParams)
-# transform the dataset using the parameters
-transformed <- predict(preprocessParams, iris[,1:4])
-# summarize the transformed dataset
-summary(transformed)
-
-# load libraries
-library(caret)
