@@ -83,10 +83,13 @@ count = 0
 col_name = c("iter","loss","l1","l2",paste("deg.",tissues,sep=""),paste("tra.g2.",data1_dimname[1:floor(p/2)],sep=""),paste("tra.g1.",data1_dimname[(1+floor(p/2)):p],sep=""),paste("ter.g2.",data1_dimname,sep=""),paste("ter.g1.",data1_dimname,sep=""))
 percent_err_col_name = c("iter","loss","l1","l2",paste("tra.g2.per.",data1_dimname[1:floor(p/2)],sep=""),paste("tra.g1.per.",data1_dimname[(1+floor(p/2)):p],sep=""),paste("ter.avg.per.",data1_dimname,sep=""),paste("ter.g2.per.",data1_dimname,sep=""),paste("ter.g1.per.",data1_dimname,sep=""))
 
-xl_col = c("iter","loss","l1","l2",paste("deg.",tissues,sep=""),paste("tra.g2.",data1_dimname[1:floor(p/2)],sep=""),paste("tra.g1.",data1_dimname[(1+floor(p/2)):p],sep=""),paste("ter.g2.",data1_dimname,sep=""),paste("ter.g1.",data1_dimname,sep=""))
+xl_col = c("iter","loss","l1","l2","total.edges.intra","total.edges.inter","avg.intra.unrelated.feature.percent.error.g2","avg.intra.unrelated.feature.r2.error.g2",
+           "avg.intra.related.feature.percent.error.g2","avg.intra.related.feature.r2.error.g2")
 
 observed_data = matrix(nrow = 1, ncol = 10)#length(col_name)) #dimnames = list(1,col_name))
-observed_data_per = matrix(nrow = 1, ncol = 10)#length(percent_err_col_name), dimnames = list(1,percent_err_col_name))
+#observed_data_per = matrix(nrow = 1, ncol = 10)#length(percent_err_col_name), dimnames = list(1,percent_err_col_name))
+
+observed_data_per = matrix(nrow = 1, ncol = length(xl_col), dimnames = list(1,xl_col))
 
 for (x in 1:length(list_lambda)) {
   for (y in 1:length(list_lambda)) {
@@ -102,23 +105,20 @@ for (x in 1:length(list_lambda)) {
     total.degree = list()
     total.degree[[1]] = rowSums(degree.intra)/2
     total.degree[[2]] = rowSums(degree.inter[[1]]+degree.inter[[2]])/2
-    #avg_err_per_inter = (Z$validation.inter[[1]] + Z$validation.inter[[2]])/2
     observed_data_per = rbind(observed_data_per,c(Z$iters,Z$diff,lambda1,lambda2,sum(total.degree[[1]]),sum(total.degree[[2]]),
                         mean(validation.intra.nrelate[[1]]),mean(validation.intra.nrelate[[2]]),
                         mean(validation.intra.relate[[1]]),mean(validation.intra.relate[[2]])))
     print(count)
+    write_xlsx(data.frame(observed_data_per), "/home/manas/JGL_inter/valid_data_details.xlsx")
   }
 }
 
 #pred=c(10,40,39,34,24,7,26,30) ## corelated
 #pred=c(2,12,16,37,14,22,4,8) ## uncorelated
-#observed_data = observed_data[2:dim(observed_data)[1],]
-observed_data_per = observed_data_per[2:dim(observed_data_per)[1],]
-#print(observed_data)
 
-#write_xlsx(data.frame(observed_data), "/home/manas/JGL_inter/observed_data_error.xlsx")
-write_xlsx(data.frame(observed_data_per), "/home/manas/JGL_inter/observed_data_percent_1.xlsx")
-# 
+observed_data_per = observed_data_per[2:dim(observed_data_per)[1],]
+write_xlsx(data.frame(observed_data_per), "/home/manas/JGL_inter/valid_data_details.xlsx")
+
 # corr=cor(DATA1[[1]])
 # colnames(corr) <- 1:p
 # out = corrplot(corr,order = "hclust", addrect = 8,hclust.method = "ward.D2")
